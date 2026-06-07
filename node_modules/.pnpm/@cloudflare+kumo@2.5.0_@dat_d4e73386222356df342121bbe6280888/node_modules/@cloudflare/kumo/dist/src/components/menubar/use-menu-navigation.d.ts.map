@@ -1,0 +1,1 @@
+{"version":3,"file":"use-menu-navigation.d.ts","sourceRoot":"","sources":["../../../../src/components/menubar/use-menu-navigation.ts"],"names":[],"mappings":"AAAA,OAAO,KAA4B,MAAM,OAAO,CAAC;AAEjD,KAAK,sBAAsB,GAAG;IAC5B,OAAO,EAAE,KAAK,CAAC,SAAS,CAAC,WAAW,GAAG,IAAI,CAAC,CAAC;IAC7C,SAAS,CAAC,EAAE,YAAY,GAAG,UAAU,CAAC;CACvC,CAAC;AAEF,eAAO,MAAM,iBAAiB,GAAI,yBAG/B,sBAAsB,SAiExB,CAAC"}

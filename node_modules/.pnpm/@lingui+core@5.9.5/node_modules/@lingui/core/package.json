@@ -1,0 +1,84 @@
+{
+  "name": "@lingui/core",
+  "version": "5.9.5",
+  "sideEffects": false,
+  "description": "I18n tools for javascript",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "author": {
+    "name": "Tomáš Ehrlich",
+    "email": "tomas.ehrlich@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "i18n",
+    "i10n",
+    "i9n",
+    "internationalization",
+    "localization",
+    "translation",
+    "multilingual"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "stub": "unbuild --stub"
+  },
+  "homepage": "https://lingui.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lingui/js-lingui.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/lingui/js-lingui/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      },
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "./macro": {
+      "types": "./macro/index.d.ts",
+      "default": "./macro/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist/",
+    "macro/index.d.ts",
+    "macro/index.js"
+  ],
+  "dependencies": {
+    "@babel/runtime": "^7.20.13",
+    "@lingui/message-utils": "5.9.5"
+  },
+  "devDependencies": {
+    "@lingui/jest-mocks": "*",
+    "unbuild": "2.0.0"
+  },
+  "peerDependencies": {
+    "@lingui/babel-plugin-lingui-macro": "5.9.5",
+    "babel-plugin-macros": "2 || 3"
+  },
+  "peerDependenciesMeta": {
+    "@lingui/babel-plugin-lingui-macro": {
+      "optional": true
+    },
+    "babel-plugin-macros": {
+      "optional": true
+    }
+  },
+  "gitHead": "7b55bd79898d1e9e5a7d32f3c72d017be82e51b3"
+}

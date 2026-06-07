@@ -1,0 +1,109 @@
+{
+  "name": "@lingui/react",
+  "version": "5.9.5",
+  "sideEffects": false,
+  "description": "React components for translations",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "author": {
+    "name": "Tomáš Ehrlich",
+    "email": "tomas.ehrlich@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "component",
+    "react-component",
+    "react-native",
+    "i18n",
+    "internationalization",
+    "i9n",
+    "translation",
+    "icu",
+    "messageformat",
+    "multilingual",
+    "localization",
+    "l10n"
+  ],
+  "scripts": {
+    "build": "rimraf ./dist && unbuild",
+    "stub": "unbuild --stub"
+  },
+  "homepage": "https://lingui.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lingui/js-lingui.git",
+    "directory": "packages/react"
+  },
+  "bugs": {
+    "url": "https://github.com/lingui/js-lingui/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "exports": {
+    ".": {
+      "require": {
+        "types": "./dist/index.d.cts",
+        "react-server": "./dist/index-rsc.cjs",
+        "default": "./dist/index.cjs"
+      },
+      "import": {
+        "types": "./dist/index.d.mts",
+        "react-server": "./dist/index-rsc.mjs",
+        "default": "./dist/index.mjs"
+      }
+    },
+    "./server": {
+      "require": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.cjs"
+      },
+      "import": {
+        "types": "./dist/server.d.ts",
+        "default": "./dist/server.mjs"
+      }
+    },
+    "./macro": {
+      "types": "./macro/index.d.ts",
+      "default": "./macro/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist/",
+    "macro/index.d.ts",
+    "macro/index.js"
+  ],
+  "peerDependencies": {
+    "@lingui/babel-plugin-lingui-macro": "5.9.5",
+    "babel-plugin-macros": "2 || 3",
+    "react": "^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@lingui/babel-plugin-lingui-macro": {
+      "optional": true
+    },
+    "babel-plugin-macros": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@babel/runtime": "^7.20.13",
+    "@lingui/core": "5.9.5"
+  },
+  "devDependencies": {
+    "@lingui/jest-mocks": "*",
+    "@testing-library/react": "^14.0.0",
+    "@types/react": "^18.2.13",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "unbuild": "2.0.0"
+  },
+  "gitHead": "7b55bd79898d1e9e5a7d32f3c72d017be82e51b3"
+}

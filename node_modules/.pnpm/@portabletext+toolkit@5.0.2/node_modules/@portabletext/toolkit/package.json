@@ -1,0 +1,65 @@
+{
+  "name": "@portabletext/toolkit",
+  "version": "5.0.2",
+  "description": "Toolkit of handy utility functions for dealing with Portable Text",
+  "keywords": [
+    "cms",
+    "content",
+    "headless",
+    "portable-text-toolkit",
+    "realtime",
+    "sanity"
+  ],
+  "homepage": "https://github.com/portabletext/toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/portabletext/toolkit/issues"
+  },
+  "license": "MIT",
+  "author": "Sanity.io <hello@sanity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/portabletext/toolkit.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@portabletext/types": "^4.0.2"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
+    "@sanity/tsconfig": "^2.1.0",
+    "@sanity/tsdown-config": "^0.5.8",
+    "@types/node": "^24.11.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "oxfmt": "^0.36.0",
+    "oxlint": "^1.51.0",
+    "oxlint-tsgolint": "^0.16.0",
+    "tsdown": "^0.20.3",
+    "typedoc": "^0.28.17",
+    "typescript": "5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "coverage": "vitest run --coverage",
+    "docs:build": "typedoc",
+    "format": "oxfmt .",
+    "lint": "oxlint --type-aware --type-check --deny-warnings --report-unused-disable-directives",
+    "release": "changeset publish",
+    "test": "vitest"
+  }
+}

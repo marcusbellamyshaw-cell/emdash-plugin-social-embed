@@ -1,0 +1,60 @@
+{
+  "name": "@portabletext/types",
+  "version": "4.0.2",
+  "description": "Shared TypeScript definitions for core Portable Text data structures",
+  "keywords": [
+    "portable-text"
+  ],
+  "homepage": "https://github.com/portabletext/types#readme",
+  "bugs": {
+    "url": "https://github.com/portabletext/types/issues"
+  },
+  "license": "MIT",
+  "author": "Sanity.io <hello@sanity.io>",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/portabletext/types.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
+    "@changesets/cli": "^2.29.8",
+    "@sanity/tsconfig": "^2.1.0",
+    "@sanity/tsdown-config": "^0.5.8",
+    "oxfmt": "^0.36.0",
+    "oxlint": "^1.51.0",
+    "oxlint-tsgolint": "^0.16.0",
+    "tsdown": "^0.20.3",
+    "typedoc": "^0.28.17",
+    "typescript": "5.9.3"
+  },
+  "lint-staged": {
+    "*": [
+      "oxfmt"
+    ]
+  },
+  "engines": {
+    "node": ">=20.19 <22 || >=22.12"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "docs:build": "typedoc",
+    "format": "oxfmt .",
+    "lint": "oxlint --type-aware --type-check --deny-warnings --report-unused-disable-directives",
+    "node:test": "node test/test.js",
+    "release": "changeset publish",
+    "pretest": "pnpm run build",
+    "test": "pnpm run node:test"
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "name": "ulidx",
+  "version": "2.4.1",
+  "description": "ULID generator for NodeJS and the browser",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": {
+        "require": "./dist/index.d.cts",
+        "default": "./dist/index.d.ts"
+      },
+      "node": {
+        "require": "./dist/node/index.cjs",
+        "default": "./dist/node/index.js"
+      },
+      "default": {
+        "require": "./dist/browser/index.cjs",
+        "default": "./dist/browser/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "dist/node/index.cjs",
+  "module": "./dist/node/index.js",
+  "browser": {
+    "./dist/node/index.cjs": "./dist/browser/index.cjs",
+    "./dist/node/index.js": "./dist/browser/index.js"
+  },
+  "react-native": "./dist/browser/index.cjs",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "bench": "npm run build && node test/benchmark.js",
+    "build": "run-s clean build:node:cjs build:node:esm build:browser:cjs build:browser:esm build:types",
+    "build:browser:cjs": "FMT=cjs ENV=browser rollup -c --name ulidx",
+    "build:browser:esm": "FMT=esm ENV=browser rollup -c --name ulidx",
+    "build:node:cjs": "FMT=cjs ENV=node rollup -c",
+    "build:node:esm": "FMT=esm ENV=node rollup -c",
+    "build:types": "tsc -p tsconfig.dec.json --emitDeclarationOnly && find ./dist -name '*.d.ts' -exec sh -c 'cp {} $(dirname {})/$(basename -s .d.ts {}).d.cts' \\;",
+    "clean": "rimraf dist",
+    "format": "prettier --write \"{{source,test}/**/*.{js,ts},rollup.config.js}\"",
+    "prepare": "simple-git-hooks",
+    "pre:commit": "lint-staged",
+    "prepublishOnly": "npm run build",
+    "test": "npm run build && npm run test:specs && npm run test:format",
+    "test:format": "prettier --check \"{{source,test}/**/*.{js,ts},rollup.config.js}\"",
+    "test:specs": "run-s test:node:esm test:node:cjs test:browser:cjs",
+    "test:browser:cjs": "mochify ./test/browser-cjs/*.spec.cjs",
+    "test:node:cjs": "c8 --src ./dist/node/index.cjs --check-coverage --lines 60 --functions 60 --branches 65 --statements 60 mocha -t 10000 'test/node-cjs/**/*.spec.cjs'",
+    "test:node:esm": "c8 --src ./dist/node/index.js --check-coverage --lines 60 --functions 60 --branches 65 --statements 60 mocha -t 10000 'test/node-esm/**/*.spec.js'"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "lint-staged": {
+    "{{source,test}/**/*.{js,ts},rollup.config.js}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run pre:commit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/perry-mitchell/ulidx.git"
+  },
+  "keywords": [
+    "ulid",
+    "uuid",
+    "id",
+    "generator",
+    "guid"
+  ],
+  "author": "Perry Mitchell <perry@perrymitchell.net>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/perry-mitchell/ulidx/issues"
+  },
+  "homepage": "https://github.com/perry-mitchell/ulidx#readme",
+  "devDependencies": {
+    "@rollup/plugin-alias": "^5.1.0",
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/node": "^22.5.0",
+    "benchmark": "^2.1.4",
+    "c8": "^10.1.2",
+    "chai": "^4.5.0",
+    "lint-staged": "^15.2.9",
+    "mocha": "^10.7.3",
+    "mochify": "^9.1.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.21.0",
+    "simple-git-hooks": "^2.11.1",
+    "sinon": "^18.0.0",
+    "tslib": "^2.7.0",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "layerr": "^3.0.0"
+  }
+}

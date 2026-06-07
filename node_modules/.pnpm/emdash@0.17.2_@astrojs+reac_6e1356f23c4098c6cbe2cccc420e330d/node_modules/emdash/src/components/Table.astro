@@ -1,0 +1,140 @@
+---
+/**
+ * Portable Text Table block component
+ *
+ * Renders tables from content imports. Cell content is rendered through the
+ * standard Portable Text pipeline so all marks (bold, italic, links, etc.) are
+ * handled by the registered mark components -- including `sanitizeHref` for links.
+ */
+import { PortableText } from "astro-portabletext";
+import { emdashMarkComponents } from "./marks.js";
+
+export interface Props {
+	node: {
+		_type: "table";
+		_key: string;
+		rows: Array<{
+			_type: "tableRow";
+			_key: string;
+			cells: Array<{
+				_type: "tableCell";
+				_key: string;
+				content: Array<{
+					_type: "span";
+					_key: string;
+					text: string;
+					marks?: string[];
+				}>;
+				markDefs?: Array<{
+					_type: string;
+					_key: string;
+					[key: string]: unknown;
+				}>;
+				isHeader?: boolean;
+			}>;
+		}>;
+		hasHeaderRow?: boolean;
+	};
+}
+
+const markComponents = { mark: emdashMarkComponents };
+
+const { node } = Astro.props;
+const rows = node?.rows ?? [];
+
+if (!rows.length) {
+	return null;
+}
+
+/**
+ * Wrap a table cell's inline content as a Portable Text block so it can be
+ * rendered through the standard pipeline (marks, markDefs, etc.).
+ */
+function cellToBlock(cell: Props["node"]["rows"][number]["cells"][number]) {
+	return [
+		{
+			_type: "block" as const,
+			_key: cell._key,
+			children: cell.content,
+			markDefs: cell.markDefs ?? [],
+		},
+	];
+}
+
+const hasHeader = node?.hasHeaderRow;
+const headerRow = hasHeader ? rows[0] : null;
+const bodyRows = hasHeader ? rows.slice(1) : rows;
+---
+
+<div class="emdash-table-wrapper">
+	<table class="emdash-table">
+		{
+			headerRow && (
+				<thead>
+					<tr>
+						{headerRow.cells.map((cell) => (
+							<th>
+								<PortableText
+									value={cellToBlock(cell)}
+									components={markComponents}
+								/>
+							</th>
+						))}
+					</tr>
+				</thead>
+			)
+		}
+		<tbody>
+			{
+				bodyRows.map((row) => (
+					<tr>
+						{row.cells.map((cell) => {
+							const CellTag = cell.isHeader ? "th" : "td";
+							return (
+								<CellTag>
+									<PortableText
+										value={cellToBlock(cell)}
+										components={markComponents}
+									/>
+								</CellTag>
+							);
+						})}
+					</tr>
+				))
+			}
+		</tbody>
+	</table>
+</div>
+
+<style>
+	.emdash-table-wrapper {
+		margin: 1.5rem 0;
+		overflow-x: auto;
+	}
+	.emdash-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.9rem;
+	}
+	.emdash-table th,
+	.emdash-table td {
+		border: 1px solid var(--color-border, #ddd);
+		padding: 0.75rem;
+		text-align: left;
+	}
+	/* Remove default block margins inside cells */
+	.emdash-table th :global(p),
+	.emdash-table td :global(p) {
+		margin: 0;
+	}
+	.emdash-table th {
+		background: var(--color-surface, #f5f5f5);
+		font-weight: 600;
+	}
+	.emdash-table tbody tr:nth-child(even) {
+		background: var(--color-bg-subtle, #fafafa);
+	}
+	.emdash-table tbody tr:hover {
+		background: var(--color-surface, #f0f0f0);
+	}
+</style>

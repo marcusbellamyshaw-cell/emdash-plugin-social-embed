@@ -1,0 +1,395 @@
+---
+import {
+  isPortableTextBlock,
+  isPortableTextListItemBlock,
+  isPortableTextToolkitList,
+  isPortableTextToolkitSpan,
+  isPortableTextToolkitTextNode,
+  nestLists,
+  buildMarksTree,
+  LIST_NEST_MODE_HTML,
+} from "@portabletext/toolkit";
+
+import type {
+  Component,
+  Context,
+  MissingComponentHandler,
+  NodeType,
+  PortableTextComponents,
+  PortableTextProps,
+  Props as ComponentProps,
+  RenderOptions,
+  TypedObject,
+} from "../lib/types";
+
+import { isComponent, mergeComponents } from "../lib/internal";
+
+import { getWarningMessage, printWarning } from "../lib/warnings";
+import { key as contextRef } from "../lib/context";
+
+import Block from "./Block.astro";
+import HardBreak from "./HardBreak.astro";
+import List from "./List.astro";
+import ListItem from "./ListItem.astro";
+import Mark from "./Mark.astro";
+import Text from "./Text.astro";
+import UnknownBlock from "./UnknownBlock.astro";
+import UnknownList from "./UnknownList.astro";
+import UnknownListItem from "./UnknownListItem.astro";
+import UnknownMark from "./UnknownMark.astro";
+import UnknownType from "./UnknownType.astro";
+
+export type Props = PortableTextProps;
+
+const {
+  value,
+  components: componentOverrides = {},
+  listNestingMode = LIST_NEST_MODE_HTML,
+  onMissingComponent = true,
+} = Astro.props;
+
+const components = mergeComponents(
+  {
+    type: {},
+    unknownType: UnknownType,
+    block: {
+      h1: Block,
+      h2: Block,
+      h3: Block,
+      h4: Block,
+      h5: Block,
+      h6: Block,
+      blockquote: Block,
+      normal: Block,
+    },
+    unknownBlock: UnknownBlock,
+    list: {
+      bullet: List,
+      number: List,
+      menu: List,
+    },
+    unknownList: UnknownList,
+    listItem: {
+      bullet: ListItem,
+      number: ListItem,
+      menu: ListItem,
+    },
+    unknownListItem: UnknownListItem,
+    mark: {
+      code: Mark,
+      em: Mark,
+      link: Mark,
+      "strike-through": Mark,
+      strong: Mark,
+      underline: Mark,
+    },
+    unknownMark: UnknownMark,
+    text: Text,
+    hardBreak: HardBreak,
+  },
+  componentOverrides
+) as PortableTextComponents;
+
+const noop = () => {};
+
+const missingComponentHandler = ((
+  handler: unknown
+): MissingComponentHandler => {
+  if (typeof handler === "function") {
+    return handler as MissingComponentHandler;
+  }
+  return !handler ? noop : printWarning;
+})(onMissingComponent);
+
+const asComponentProps = <T extends TypedObject>(
+  node: T,
+  index: number,
+  isInline: boolean
+): ComponentProps<T> => ({
+  node,
+  index,
+  isInline,
+});
+
+const provideComponent = (
+  nodeType: NodeType,
+  type: string,
+  fallbackComponent: Component
+): Component => {
+  const component: Component | undefined = ((component) => {
+    return component[type as keyof typeof component] || component;
+  })(components[nodeType]);
+
+  if (isComponent(component)) {
+    return component;
+  }
+
+  missingComponentHandler(getWarningMessage(nodeType, type), {
+    nodeType,
+    type,
+  });
+
+  return fallbackComponent;
+};
+
+const cachedNodes = new WeakMap<
+  TypedObject,
+  { Default?: Component; Unknown?: Component }
+>();
+
+function cacheNode(node: TypedObject, Default: Component, Unknown: Component) {
+  cachedNodes.set(node, { Default, Unknown });
+}
+
+// The local render function will override these options
+let fallbackRenderOptions: Required<RenderOptions> | undefined;
+
+const portableTextRender = (options: RenderOptions, isInline?: boolean) => {
+  if (!fallbackRenderOptions) {
+    throw new Error(
+      "[PortableText portableTextRender] fallbackRenderOptions is undefined"
+    );
+  }
+
+  const renderChildren = (children?: TypedObject[], inline = false) => {
+    return children?.map(portableTextRender(options, inline)) ?? [];
+  };
+
+  const renderOptions = { ...fallbackRenderOptions, ...(options ?? {}) };
+
+  return function renderNode(node: TypedObject, index: number): any {
+    function run<H extends (...args: any) => any, P = Parameters<H>[0]>(
+      handler: H | undefined,
+      props: P
+    ) {
+      if (!isComponent(handler)) {
+        throw new Error(
+          `[PortableText render] No handler found for node type ${node._type}.`
+        );
+      }
+
+      return handler(props);
+    }
+
+    if (isPortableTextToolkitList(node)) {
+      const UnknownComponent = components.unknownList ?? UnknownList;
+      cacheNode(node, List, UnknownComponent);
+
+      return run(renderOptions.list, {
+        Component: provideComponent("list", node.listItem, UnknownComponent),
+        props: asComponentProps(node, index, false),
+        children: renderChildren(node.children, false),
+      });
+    }
+
+    if (isPortableTextListItemBlock(node)) {
+      const { listItem, ...blockNode } = node;
+      const isStyled = node.style && node.style !== "normal";
+      // Apply block style if defined (and not "normal"), otherwise render with marks.
+      node.children = isStyled
+        ? renderNode(blockNode, index)
+        : buildMarksTree(node);
+
+      const UnknownComponent = components.unknownListItem ?? UnknownListItem;
+      cacheNode(node, ListItem, UnknownComponent);
+
+      return run(renderOptions.listItem, {
+        Component: provideComponent(
+          "listItem",
+          node.listItem,
+          UnknownComponent
+        ),
+        props: asComponentProps(node, index, false),
+        children: isStyled
+          ? node.children
+          : renderChildren(node.children, true),
+      });
+    }
+
+    if (isPortableTextToolkitSpan(node)) {
+      const UnknownComponent = components.unknownMark ?? UnknownMark;
+      cacheNode(node, Mark, UnknownComponent);
+
+      return run(renderOptions.mark, {
+        Component: provideComponent("mark", node.markType, UnknownComponent),
+        props: asComponentProps(node, index, true),
+        children: renderChildren(node.children, true),
+      });
+    }
+
+    if (isPortableTextBlock(node)) {
+      node.style ??= "normal"; /* Make sure style has been set */
+      node.children = buildMarksTree(node);
+
+      const UnknownComponent = components.unknownBlock ?? UnknownBlock;
+      cacheNode(node, Block, UnknownComponent);
+
+      return run(renderOptions.block, {
+        Component: provideComponent("block", node.style, UnknownComponent),
+        props: asComponentProps(node, index, false),
+        children: renderChildren(node.children, true),
+      });
+    }
+
+    if (isPortableTextToolkitTextNode(node)) {
+      const isHardBreak = "\n" === node.text;
+      const props = asComponentProps(node, index, true);
+
+      if (isHardBreak) {
+        return run(renderOptions.hardBreak, {
+          Component: isComponent(components.hardBreak)
+            ? components.hardBreak
+            : HardBreak,
+          props,
+        });
+      }
+
+      return run(renderOptions.text, {
+        Component: isComponent(components.text) ? components.text : Text,
+        props,
+      });
+    }
+
+    // Custom type
+    const UnknownComponent = components.unknownType ?? UnknownType;
+
+    return run(renderOptions.type, {
+      Component: provideComponent("type", node._type, UnknownComponent),
+      props: asComponentProps(
+        node,
+        index,
+        isInline ?? false /* default to block */
+      ),
+    });
+  };
+};
+
+(globalThis as any)[contextRef] = (
+  node: TypedObject & { children?: TypedObject[] }
+): Context => ({
+  getDefaultComponent: provideDefaultComponent.bind(null, node),
+  getUnknownComponent: provideUnknownComponent.bind(null, node),
+  render: (options) => node.children?.map(portableTextRender(options)),
+});
+
+// Returns the `default` component related to the passed in node
+const provideDefaultComponent = (node: TypedObject) => {
+  const DefaultComponent = cachedNodes.get(node)?.Default;
+  if (DefaultComponent) return DefaultComponent;
+
+  // Cache missed use manual lookup
+  if (import.meta.env.DEV) {
+    console.warn(
+      `[astro-portabletext] Cache missed for default component on node type "${node._type}". Ensure you are passing in the original "node" prop.`
+    );
+  }
+
+  if (isPortableTextToolkitList(node)) return List;
+  if (isPortableTextListItemBlock(node)) return ListItem;
+  if (isPortableTextToolkitSpan(node)) return Mark;
+  if (isPortableTextBlock(node)) return Block;
+
+  if (isPortableTextToolkitTextNode(node)) {
+    return "\n" === node.text ? HardBreak : Text;
+  }
+
+  return UnknownType;
+};
+
+// Returns the `unknown` component related to the passed in node
+const provideUnknownComponent = (node: TypedObject) => {
+  const UnknownComponent = cachedNodes.get(node)?.Unknown;
+  if (UnknownComponent) return UnknownComponent;
+
+  // Cache missed use manual lookup
+  if (import.meta.env.DEV) {
+    console.warn(
+      `[astro-portabletext] Cache missed for unknown component on node type "${node._type}". Ensure you are passing in the original "node" prop.`
+    );
+  }
+
+  if (isPortableTextToolkitList(node)) {
+    return components.unknownList ?? UnknownList;
+  }
+
+  if (isPortableTextListItemBlock(node)) {
+    return components.unknownListItem ?? UnknownListItem;
+  }
+
+  if (isPortableTextToolkitSpan(node)) {
+    return components.unknownMark ?? UnknownMark;
+  }
+
+  if (isPortableTextBlock(node)) {
+    return components.unknownBlock ?? UnknownBlock;
+  }
+
+  if (!isPortableTextToolkitTextNode(node)) {
+    return components.unknownType ?? UnknownType;
+  }
+
+  throw new Error(
+    `[PortableText getUnknownComponent] Unable to provide component with node type ${node._type}`
+  );
+};
+
+// Make sure we have an array of blocks
+const blocks = Array.isArray(value) ? value : value ? [value] : [];
+const nodes = nestLists(blocks, listNestingMode);
+
+const render = (options: NonNullable<typeof fallbackRenderOptions>) => {
+  fallbackRenderOptions = options;
+  return portableTextRender(options);
+};
+
+// Create a slot renderer for a specific slot
+const createSlotRenderer = (slotName: string) =>
+  Astro.slots.render.bind(Astro.slots, slotName);
+
+type SlotRenderer = ReturnType<typeof createSlotRenderer>;
+
+const slots = [
+  "type",
+  "block",
+  "list",
+  "listItem",
+  "mark",
+  "text",
+  "hardBreak",
+].reduce(
+  (obj, name) => {
+    obj[name] = Astro.slots.has(name) ? createSlotRenderer(name) : undefined;
+    return obj;
+  },
+  {} as Record<string, SlotRenderer | undefined>
+);
+
+type RenderNode = (
+  slotRenderer: SlotRenderer | undefined
+) => (
+  props: Parameters<NonNullable<RenderOptions[keyof RenderOptions]>>[0]
+) => any;
+---
+
+{
+  (() => {
+    const renderNode: RenderNode = (slotRenderer) => {
+      return ({ Component, props, children }) =>
+        slotRenderer?.([{ Component, props, children }]) ?? (
+          <Component {...(props as any)}>{children}</Component>
+        );
+    };
+
+    return nodes.map(
+      render({
+        type: renderNode(slots.type),
+        block: renderNode(slots.block),
+        list: renderNode(slots.list),
+        listItem: renderNode(slots.listItem),
+        mark: renderNode(slots.mark),
+        text: renderNode(slots.text),
+        hardBreak: renderNode(slots.hardBreak),
+      })
+    );
+  })()
+}

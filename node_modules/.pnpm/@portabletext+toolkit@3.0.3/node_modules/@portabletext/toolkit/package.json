@@ -1,0 +1,106 @@
+{
+  "name": "@portabletext/toolkit",
+  "version": "3.0.3",
+  "description": "Toolkit of handy utility functions for dealing with Portable Text",
+  "keywords": [
+    "sanity",
+    "cms",
+    "headless",
+    "realtime",
+    "content",
+    "portable-text-toolkit"
+  ],
+  "homepage": "https://github.com/portabletext/toolkit#readme",
+  "bugs": {
+    "url": "https://github.com/portabletext/toolkit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/portabletext/toolkit.git"
+  },
+  "license": "MIT",
+  "author": "Sanity.io <hello@sanity.io>",
+  "sideEffects": false,
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "browserslist": [
+    "extends @sanity/browserslist-config",
+    "node 14"
+  ],
+  "prettier": "@sanity/prettier-config",
+  "eslintConfig": {
+    "parserOptions": {
+      "ecmaFeatures": {
+        "modules": true
+      },
+      "ecmaVersion": 9,
+      "sourceType": "module"
+    },
+    "extends": [
+      "sanity",
+      "sanity/typescript",
+      "prettier"
+    ],
+    "ignorePatterns": [
+      "dist/**/"
+    ]
+  },
+  "dependencies": {
+    "@portabletext/types": "^2.0.15"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.6",
+    "@sanity/browserslist-config": "^1.0.5",
+    "@sanity/pkg-utils": "^8.1.4",
+    "@sanity/prettier-config": "^2.0.1",
+    "@types/node": "^22.18.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-config-sanity": "^7.1.4",
+    "npm-run-all2": "^8.0.4",
+    "prettier": "^3.6.2",
+    "rimraf": "^4.4.1",
+    "typedoc": "^0.28.12",
+    "typescript": "5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": "^14.13.1 || >=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "run-s clean pkg:build pkg:check",
+    "clean": "rimraf dist coverage",
+    "coverage": "vitest run --coverage",
+    "docs:build": "typedoc",
+    "format": "prettier --write --cache --ignore-unknown .",
+    "lint": "eslint .",
+    "pkg:build": "pkg-utils build --strict",
+    "pkg:check": "pkg-utils --strict",
+    "release": "changeset publish",
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
+  }
+}
