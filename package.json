@@ -1,6 +1,6 @@
 {
   "name": "emdash-plugin-social-embed",
-  "version": "1.0.0",
+  "version": "1.1.2",
   "description": "Embed social media posts in EmDash Portable Text by pasting a URL",
   "license": "MIT",
   "type": "module",

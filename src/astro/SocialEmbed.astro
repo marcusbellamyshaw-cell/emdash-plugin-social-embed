@@ -23,7 +23,9 @@ if (url) {
 		);
 		const res = await fetch(apiUrl.toString());
 		if (res.ok) {
-			const data = (await res.json()) as OEmbedRouteResult;
+			// Emdash wraps all plugin route responses in { data: ... }
+			const json = (await res.json()) as { data?: OEmbedRouteResult } | OEmbedRouteResult;
+			const data = (json as { data?: OEmbedRouteResult }).data ?? (json as OEmbedRouteResult);
 			if (data.html) {
 				embed = {
 					html: data.html,

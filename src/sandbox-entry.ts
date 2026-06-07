@@ -1,11 +1,11 @@
-import { definePlugin } from "emdash";
-import type { PluginContext } from "emdash";
+import { definePlugin, PluginRouteError } from "emdash";
+import type { PluginContext, RouteContext } from "emdash";
 import { detectPlatform, fetchEmbed } from "./platforms.js";
 
 export function createPlugin() {
 	return definePlugin({
 		id: "social-embed",
-		version: "1.0.0",
+		version: "1.1.2",
 
 		admin: {
 			portableTextBlocks: [
@@ -33,11 +33,10 @@ export function createPlugin() {
 			// Reads Meta credentials from KV so they never need to be in env vars.
 			oembed: {
 				public: true,
-				handler: async (routeCtx: unknown, ctx: PluginContext) => {
-					const req = (routeCtx as { request: Request }).request;
-					const urlParam = new URL(req.url).searchParams.get("url");
+				handler: async (ctx: RouteContext) => {
+					const urlParam = new URL(ctx.request.url).searchParams.get("url");
 
-					if (!urlParam) return { error: "Missing url parameter" };
+					if (!urlParam) throw PluginRouteError.badRequest("Missing url parameter");
 
 					const platform = detectPlatform(urlParam);
 					if (!platform) return { error: "Unrecognized platform", url: urlParam };
@@ -67,8 +66,8 @@ export function createPlugin() {
 			},
 
 			admin: {
-				handler: async (routeCtx: unknown, ctx: PluginContext) => {
-					const interaction = (routeCtx as { input: Record<string, unknown> }).input;
+				handler: async (ctx: RouteContext) => {
+					const interaction = ctx.input as Record<string, unknown>;
 
 					if (interaction.type === "page_load" && interaction.page === "/settings") {
 						const currentAppId = await ctx.kv.get<string>("settings:metaAppId");
