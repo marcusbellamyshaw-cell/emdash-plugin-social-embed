@@ -13,8 +13,8 @@ Embed social media posts in [EmDash](https://emdashcms.com) Portable Text by pas
 | Spotify | None |
 | Bluesky | None |
 | TikTok | None |
-| Facebook | Meta App (see below) |
-| Threads | Meta App (see below) |
+| Facebook | Meta App (configure in admin) |
+| Threads | Meta App (configure in admin) |
 | Mastodon | None (best-effort per instance) |
 
 ## Installation
@@ -37,22 +37,20 @@ emdash({
 
 ## Facebook & Threads
 
-Get your App ID and Secret from [developers.facebook.com](https://developers.facebook.com). Enable the **oEmbed** product on your app.
+Configure credentials through the EmDash admin UI — no env vars or config files needed:
 
-Add to `.dev.vars` (local) and `wrangler.jsonc` `[vars]` section (production):
+1. Create an app at [developers.facebook.com](https://developers.facebook.com) and enable the **oEmbed** product.
+2. In the EmDash admin, go to **Settings → Social Embed** and enter your App ID and App Secret.
 
-```
-SOCIAL_EMBED_META_APP_ID=your_app_id
-SOCIAL_EMBED_META_APP_SECRET=your_app_secret
-```
+Credentials are stored in the plugin's scoped KV store and read at render time.
 
 ## Usage
 
-In any Portable Text field in the EmDash editor, type `/` and choose **Social Embed**, then paste a post URL. The embed is fetched server-side and rendered as static HTML — no runtime API calls on the deployed site.
+In any Portable Text field in the EmDash editor, type `/` and choose **Social Embed**, then paste a post URL. The embed is fetched server-side via the plugin's own route — no runtime API calls in the browser.
 
 ## Performance
 
-- oEmbed responses are cached at Cloudflare's edge for 24 hours
+- oEmbed responses are cached at Cloudflare's edge for 24 hours (`cf.cacheTtl`)
 - Platform scripts (Twitter widgets.js, TikTok embed.js, Facebook SDK) are only injected on pages that contain that type of embed
 - YouTube, Vimeo, Reddit, Spotify, and Bluesky produce pure iframes with no extra JavaScript at all
 
