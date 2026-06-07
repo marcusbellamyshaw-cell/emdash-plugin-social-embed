@@ -1,0 +1,78 @@
+---
+import { detectPlatform, fetchEmbed, PLATFORM_LABELS } from "../platforms.ts";
+
+const { node } = Astro.props;
+const url = (node?.url as string | undefined)?.trim();
+
+const platform = url ? detectPlatform(url) : null;
+
+const embed = platform
+	? await fetchEmbed(url!, platform, {
+			metaAppId: import.meta.env.SOCIAL_EMBED_META_APP_ID,
+			metaAppSecret: import.meta.env.SOCIAL_EMBED_META_APP_SECRET,
+		})
+	: null;
+
+const platformLabel = platform ? (PLATFORM_LABELS[platform] ?? platform) : null;
+---
+
+{embed ? (
+	<div class="social-embed" data-platform={embed.platform}>
+		{/* set:html renders the oEmbed markup (iframe or blockquote).
+		    Scripts are stripped — innerHTML-injected scripts don't execute.
+		    The platform script is loaded separately below so it actually runs. */}
+		<div set:html={embed.html} />
+		{embed.scriptSrc && (
+			<script define:vars={{ scriptSrc: embed.scriptSrc }}>
+				// Load once per page even if multiple embeds from the same platform exist
+				if (!document.querySelector('script[data-social-embed-src="' + scriptSrc + '"]')) {
+					var s = document.createElement("script");
+					s.src = scriptSrc;
+					s.async = true;
+					s.setAttribute("data-social-embed-src", scriptSrc);
+					document.head.appendChild(s);
+				}
+			</script>
+		)}
+	</div>
+) : url ? (
+	<div class="social-embed social-embed--fallback">
+		<a href={url} target="_blank" rel="noopener noreferrer">
+			{platformLabel ? `${platformLabel} post` : url}
+		</a>
+		{platform && (platform === "facebook" || platform === "threads") && !import.meta.env.SOCIAL_EMBED_META_APP_ID && (
+			<p class="social-embed__note">
+				Facebook/Threads embeds require <code>SOCIAL_EMBED_META_APP_ID</code> and{" "}
+				<code>SOCIAL_EMBED_META_APP_SECRET</code> environment variables.
+			</p>
+		)}
+	</div>
+) : null}
+
+<style>
+	.social-embed {
+		margin: 1.5rem auto;
+		max-width: 550px;
+	}
+
+	.social-embed :global(iframe) {
+		width: 100%;
+		border: none;
+		border-radius: 4px;
+	}
+
+	.social-embed--fallback a {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		color: inherit;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.social-embed__note {
+		margin-top: 0.5rem;
+		font-size: 0.8rem;
+		color: #888;
+	}
+</style>

@@ -1,0 +1,20 @@
+{
+  "name": "emdash-plugin-social-embed",
+  "version": "1.0.0",
+  "description": "Embed social media posts in EmDash Portable Text by pasting a URL",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./astro": "./src/astro/index.ts"
+  },
+  "keywords": ["emdash", "emdash-plugin", "social-embed", "oembed"],
+  "peerDependencies": {
+    "emdash": ">=0.17.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "astro": "^6.0.1",
+    "typescript": "^5.0.0"
+  }
+}
