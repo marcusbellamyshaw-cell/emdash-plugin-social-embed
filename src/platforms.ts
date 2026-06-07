@@ -115,7 +115,10 @@ export async function fetchEmbed(
 
 	try {
 		const res = await fetch(oembedUrl, {
-			headers: { Accept: "application/json" },
+			headers: {
+				Accept: "application/json",
+				"User-Agent": "Mozilla/5.0 (compatible; oEmbed/1.0; +https://everybittexas.com)",
+			},
 			// @ts-ignore — Cloudflare Workers cf option, ignored in Node.js dev
 			cf: { cacheTtl: 86400, cacheEverything: true },
 		});

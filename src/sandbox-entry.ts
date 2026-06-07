@@ -70,7 +70,7 @@ export function createPlugin() {
 				handler: async (ctx: RouteContext) => {
 					const interaction = ctx.input as Record<string, unknown>;
 
-					if (interaction.type === "page_load" && interaction.page === "/settings") {
+					if (interaction.type === "page_load") {
 						const currentAppId = await ctx.kv.get<string>("settings:metaAppId");
 
 						return {
@@ -82,8 +82,8 @@ export function createPlugin() {
 								},
 								{
 									type: "form",
-									blockId: "meta-settings",
-									submit: { text: "Save" },
+									block_id: "meta-settings",
+									submit: { label: "Save", action_id: "saveMetaCredentials" },
 									fields: [
 										{
 											type: "text_input",
@@ -112,10 +112,7 @@ export function createPlugin() {
 						};
 					}
 
-					if (
-						interaction.type === "form_submit" &&
-						interaction.blockId === "meta-settings"
-					) {
+					if (interaction.action_id === "saveMetaCredentials") {
 						const values = interaction.values as {
 							metaAppId?: string;
 							metaAppSecret?: string;
