@@ -12,6 +12,6 @@ export function socialEmbedPlugin(options: Record<string, unknown> = {}): Plugin
 		// network:request:unrestricted — oEmbed endpoints span many hosts including
 		// arbitrary Mastodon instances, so a fixed allowedHosts list isn't feasible
 		capabilities: ["network:request:unrestricted"],
-		adminPages: [{ path: "/settings", label: "Social Embed", icon: "link-external" }],
+		adminPages: [{ path: "/settings", label: "Social Embed Settings", icon: "gear" }],
 	};
 }
