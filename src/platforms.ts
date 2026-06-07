@@ -1,14 +1,4 @@
-export type Platform =
-	| "youtube"
-	| "vimeo"
-	| "twitter"
-	| "reddit"
-	| "spotify"
-	| "bluesky"
-	| "tiktok"
-	| "facebook"
-	| "threads"
-	| "mastodon";
+export type Platform = "youtube" | "vimeo" | "twitter" | "spotify" | "tiktok";
 
 export interface EmbedResult {
 	html: string;
@@ -22,37 +12,28 @@ const PLATFORM_PATTERNS: Array<{ platform: Platform; pattern: RegExp }> = [
 	{ platform: "youtube", pattern: /(?:youtube\.com\/(?:watch|shorts)|youtu\.be\/)/i },
 	{ platform: "vimeo", pattern: /vimeo\.com\/\d/i },
 	{ platform: "twitter", pattern: /(?:twitter\.com|x\.com)\/\w+\/status\//i },
-	{ platform: "reddit", pattern: /reddit\.com\/r\/\w+\/comments\//i },
 	{ platform: "spotify", pattern: /open\.spotify\.com\//i },
-	{ platform: "bluesky", pattern: /bsky\.app\/profile\//i },
 	{ platform: "tiktok", pattern: /tiktok\.com\/@[\w.]+\/video\//i },
-	{ platform: "threads", pattern: /threads\.net\/@?[\w.]+\/post\//i },
-	{ platform: "facebook", pattern: /facebook\.com\/(?:permalink|photo|video|posts|story|reel)/i },
-	// Mastodon: broad pattern — match /@username/digits on any domain
-	{ platform: "mastodon", pattern: /\/@[\w]+\/\d{10,}/i },
 ];
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
 	youtube: "YouTube",
 	vimeo: "Vimeo",
 	twitter: "Twitter / X",
-	reddit: "Reddit",
 	spotify: "Spotify",
-	bluesky: "Bluesky",
 	tiktok: "TikTok",
-	facebook: "Facebook",
-	threads: "Threads",
-	mastodon: "Mastodon",
 };
 
 // Scripts that must be loaded as real DOM elements (stripped from oEmbed HTML,
-// injected separately so they actually execute — innerHTML-injected scripts don't run)
+// injected separately so they actually execute)
 const PLATFORM_SCRIPTS: Partial<Record<Platform, string>> = {
 	twitter: "https://platform.twitter.com/widgets.js",
 	tiktok: "https://www.tiktok.com/embed.js",
-	facebook: "https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0",
-	threads: "https://www.threads.net/embed.js",
 };
+
+// Platforms whose oEmbed returns a landscape video iframe — use 16:9 ratio wrapper.
+// All other platforms render at their natural size.
+export const VIDEO_EMBED_PLATFORMS: Platform[] = ["youtube", "vimeo"];
 
 const SCRIPT_RE = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
 
@@ -63,13 +44,7 @@ export function detectPlatform(url: string): Platform | null {
 	return null;
 }
 
-export async function fetchEmbed(
-	url: string,
-	platform: Platform,
-	opts: { metaAppId?: string; metaAppSecret?: string } = {},
-): Promise<EmbedResult | null> {
-	const { metaAppId, metaAppSecret } = opts;
-
+export async function fetchEmbed(url: string, platform: Platform): Promise<EmbedResult | null> {
 	let oembedUrl: string;
 
 	switch (platform) {
@@ -82,35 +57,12 @@ export async function fetchEmbed(
 		case "twitter":
 			oembedUrl = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}&dnt=true&theme=auto&omit_script=true`;
 			break;
-		case "reddit":
-			oembedUrl = `https://www.reddit.com/oembed?url=${encodeURIComponent(url)}`;
-			break;
 		case "spotify":
 			oembedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`;
-			break;
-		case "bluesky":
-			oembedUrl = `https://embed.bsky.app/oembed?url=${encodeURIComponent(url)}`;
 			break;
 		case "tiktok":
 			oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
 			break;
-		case "facebook":
-			if (!metaAppId || !metaAppSecret) return null;
-			oembedUrl = `https://graph.facebook.com/v18.0/oembed_post?url=${encodeURIComponent(url)}&access_token=${encodeURIComponent(`${metaAppId}|${metaAppSecret}`)}&format=json`;
-			break;
-		case "threads":
-			if (!metaAppId || !metaAppSecret) return null;
-			oembedUrl = `https://graph.facebook.com/v18.0/oembed_post?url=${encodeURIComponent(url)}&access_token=${encodeURIComponent(`${metaAppId}|${metaAppSecret}`)}&format=json`;
-			break;
-		case "mastodon": {
-			try {
-				const parsed = new URL(url);
-				oembedUrl = `${parsed.origin}/api/oembed?url=${encodeURIComponent(url)}&format=json`;
-			} catch {
-				return null;
-			}
-			break;
-		}
 	}
 
 	try {

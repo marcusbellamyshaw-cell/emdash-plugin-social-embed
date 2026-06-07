@@ -7,16 +7,12 @@ interface OEmbedRouteResult {
 	scriptSrc?: string | null;
 	platform?: string;
 	error?: string;
-	needsCredentials?: boolean;
 }
 
 let embed: { html: string; scriptSrc: string | null; platform: string } | null = null;
-let needsCredentials = false;
 
 if (url) {
 	try {
-		// Prefer the EmDash internal handler — no HTTP round-trip, no Cloudflare edge cache.
-		// routeRegistry.invoke returns { success, data, status }, NOT a fetch Response.
 		type InternalResult = { success: boolean; data?: OEmbedRouteResult };
 		const internalHandler = (Astro.locals as Record<string, unknown>)
 			?.emdash as { handlePublicPluginApiRoute?: (pluginId: string, method: string, path: string, req: Request) => Promise<InternalResult> } | undefined;
@@ -30,11 +26,8 @@ if (url) {
 					scriptSrc: result.data.scriptSrc ?? null,
 					platform: result.data.platform ?? "",
 				};
-			} else if (result.data?.needsCredentials) {
-				needsCredentials = true;
 			}
 		} else {
-			// Fallback: HTTP fetch (local dev without full EmDash middleware)
 			const apiUrl = new URL(
 				`/_emdash/api/plugins/social-embed/oembed?url=${encodeURIComponent(url)}`,
 				Astro.url,
@@ -45,8 +38,6 @@ if (url) {
 				const data = (json as { data?: OEmbedRouteResult }).data ?? (json as OEmbedRouteResult);
 				if (data.html) {
 					embed = { html: data.html, scriptSrc: data.scriptSrc ?? null, platform: data.platform ?? "" };
-				} else if (data.needsCredentials) {
-					needsCredentials = true;
 				}
 			}
 		}
@@ -56,13 +47,19 @@ if (url) {
 }
 ---
 
+{/* Only YouTube and Vimeo return 16:9 landscape video iframes. Twitter, Spotify,
+    and TikTok render at their natural size. */}
 {embed ? (
 	<div class="social-embed" data-platform={embed.platform}>
-		{/* Wrapper gives iframes a responsive 16:9 box regardless of the
-		    hardcoded width/height attributes YouTube/Vimeo put on the element. */}
-		<div class="social-embed__ratio">
-			<div set:html={embed.html} />
-		</div>
+		{["youtube", "vimeo"].includes(embed.platform) ? (
+			<div class="social-embed__ratio">
+				<div set:html={embed.html} />
+			</div>
+		) : (
+			<div class="social-embed__natural">
+				<div set:html={embed.html} />
+			</div>
+		)}
 		{embed.scriptSrc && (
 			<script define:vars={{ scriptSrc: embed.scriptSrc }}>
 				if (!document.querySelector('script[data-social-embed-src="' + scriptSrc + '"]')) {
@@ -78,12 +75,6 @@ if (url) {
 ) : url ? (
 	<div class="social-embed social-embed--fallback">
 		<a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
-		{needsCredentials && (
-			<p class="social-embed__note">
-				Facebook and Threads embeds require Meta credentials — add them under{" "}
-				<em>Social Embed</em> in the EmDash admin settings.
-			</p>
-		)}
 	</div>
 ) : null}
 
@@ -93,8 +84,15 @@ if (url) {
 		max-width: 550px;
 	}
 
-	/* Padding-bottom creates a 16:9 box regardless of the iframe's
-	   hardcoded width/height attributes. Works on iOS Safari 9+, all Android. */
+	.social-embed :global(iframe) {
+		width: 100%;
+		border: none;
+		border-radius: 4px;
+	}
+
+	/* 16:9 ratio wrapper — YouTube and Vimeo only.
+	   Padding-bottom overrides the hardcoded height attribute from oEmbed.
+	   Works on iOS Safari 9+, all Android browsers. */
 	.social-embed__ratio {
 		position: relative;
 		padding-bottom: 56.25%;
@@ -104,12 +102,9 @@ if (url) {
 
 	.social-embed__ratio :global(iframe) {
 		position: absolute;
-		top: 0;
-		left: 0;
+		inset: 0;
 		width: 100%;
 		height: 100%;
-		border: none;
-		border-radius: 4px;
 	}
 
 	.social-embed--fallback a {
@@ -120,11 +115,5 @@ if (url) {
 		text-decoration: underline;
 		text-underline-offset: 3px;
 		word-break: break-all;
-	}
-
-	.social-embed__note {
-		margin-top: 0.5rem;
-		font-size: 0.8rem;
-		color: #888;
 	}
 </style>
