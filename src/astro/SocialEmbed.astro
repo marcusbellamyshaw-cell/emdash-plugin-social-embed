@@ -15,29 +15,43 @@ let needsCredentials = false;
 
 if (url) {
 	try {
-		// Call the plugin's own /oembed route — it reads Meta credentials from KV
-		// so they never need to be hardcoded or set as env vars.
-		const apiUrl = new URL(
-			`/_emdash/api/plugins/social-embed/oembed?url=${encodeURIComponent(url)}`,
-			Astro.url,
-		);
-		const res = await fetch(apiUrl.toString());
-		if (res.ok) {
-			// Emdash wraps all plugin route responses in { data: ... }
-			const json = (await res.json()) as { data?: OEmbedRouteResult } | OEmbedRouteResult;
-			const data = (json as { data?: OEmbedRouteResult }).data ?? (json as OEmbedRouteResult);
-			if (data.html) {
+		// Prefer the EmDash internal handler — no HTTP round-trip, no Cloudflare edge cache.
+		// routeRegistry.invoke returns { success, data, status }, NOT a fetch Response.
+		type InternalResult = { success: boolean; data?: OEmbedRouteResult };
+		const internalHandler = (Astro.locals as Record<string, unknown>)
+			?.emdash as { handlePublicPluginApiRoute?: (pluginId: string, method: string, path: string, req: Request) => Promise<InternalResult> } | undefined;
+
+		if (internalHandler?.handlePublicPluginApiRoute) {
+			const req = new Request(`https://x/oembed?url=${encodeURIComponent(url)}`);
+			const result = await internalHandler.handlePublicPluginApiRoute("social-embed", "GET", "oembed", req);
+			if (result.success && result.data?.html) {
 				embed = {
-					html: data.html,
-					scriptSrc: data.scriptSrc ?? null,
-					platform: data.platform ?? "",
+					html: result.data.html,
+					scriptSrc: result.data.scriptSrc ?? null,
+					platform: result.data.platform ?? "",
 				};
-			} else if (data.needsCredentials) {
+			} else if (result.data?.needsCredentials) {
 				needsCredentials = true;
 			}
+		} else {
+			// Fallback: HTTP fetch (local dev without full EmDash middleware)
+			const apiUrl = new URL(
+				`/_emdash/api/plugins/social-embed/oembed?url=${encodeURIComponent(url)}`,
+				Astro.url,
+			);
+			const res = await fetch(apiUrl.toString());
+			if (res.ok) {
+				const json = (await res.json()) as { data?: OEmbedRouteResult } | OEmbedRouteResult;
+				const data = (json as { data?: OEmbedRouteResult }).data ?? (json as OEmbedRouteResult);
+				if (data.html) {
+					embed = { html: data.html, scriptSrc: data.scriptSrc ?? null, platform: data.platform ?? "" };
+				} else if (data.needsCredentials) {
+					needsCredentials = true;
+				}
+			}
 		}
-	} catch {
-		// Network error — silently degrade to link fallback
+	} catch (e) {
+		console.error("[social-embed] embed failed:", e);
 	}
 }
 ---

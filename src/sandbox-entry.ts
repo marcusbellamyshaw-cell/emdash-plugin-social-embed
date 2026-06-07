@@ -8,6 +8,7 @@ export function createPlugin() {
 		version: "1.1.2",
 
 		admin: {
+			pages: [{ path: "/settings", label: "Social Embed Settings", icon: "gear" }],
 			portableTextBlocks: [
 				{
 					type: "socialEmbed",
