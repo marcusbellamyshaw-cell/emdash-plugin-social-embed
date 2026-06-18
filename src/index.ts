@@ -5,13 +5,21 @@ export { createPlugin } from "./sandbox-entry.js";
 export function socialEmbedPlugin(options: Record<string, unknown> = {}): PluginDescriptor {
 	return {
 		id: "social-embed",
-		version: "1.1.2",
+		version: "1.3.0",
 		entrypoint: "emdash-plugin-social-embed",
 		componentsEntry: "emdash-plugin-social-embed/astro",
 		options,
-		// network:request:unrestricted — oEmbed endpoints span many hosts including
-		// arbitrary Mastodon instances, so a fixed allowedHosts list isn't feasible
-		capabilities: ["network:request:unrestricted"],
-		adminPages: [{ path: "/settings", label: "Social Embed Settings", icon: "gear" }],
+		// The plugin only fetches five fixed oEmbed provider hosts, so an explicit
+		// allowlist replaces the previous network:request:unrestricted grant.
+		capabilities: ["network:request"],
+		allowedHosts: [
+			"www.youtube.com",
+			"vimeo.com",
+			"publish.twitter.com",
+			"open.spotify.com",
+			"www.tiktok.com",
+		],
+		// No settings page is shipped (all five providers need no credentials), so
+		// the previous /settings nav entry pointed at a non-existent page.
 	};
 }

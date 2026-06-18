@@ -5,7 +5,7 @@ import { detectPlatform, fetchEmbed } from "./platforms.js";
 export function createPlugin() {
 	return definePlugin({
 		id: "social-embed",
-		version: "1.2.0",
+		version: "1.3.0",
 
 		admin: {
 			portableTextBlocks: [
@@ -37,9 +37,9 @@ export function createPlugin() {
 					if (!urlParam) throw PluginRouteError.badRequest("Missing url parameter");
 
 					const platform = detectPlatform(urlParam);
-					if (!platform) return { error: "Unrecognized platform", url: urlParam };
+					if (!platform) return { error: "Unrecognized platform" };
 
-					const embed = await fetchEmbed(urlParam, platform);
+					const embed = await fetchEmbed(ctx, urlParam, platform);
 
 					if (!embed) return { error: "Failed to fetch embed", platform };
 

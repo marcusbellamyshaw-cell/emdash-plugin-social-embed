@@ -1,3 +1,5 @@
+import type { RouteContext } from "emdash";
+
 export type Platform = "youtube" | "vimeo" | "twitter" | "spotify" | "tiktok";
 
 export interface EmbedResult {
@@ -7,14 +9,6 @@ export interface EmbedResult {
 	title?: string;
 	authorName?: string;
 }
-
-const PLATFORM_PATTERNS: Array<{ platform: Platform; pattern: RegExp }> = [
-	{ platform: "youtube", pattern: /(?:youtube\.com\/(?:watch|shorts)|youtu\.be\/)/i },
-	{ platform: "vimeo", pattern: /vimeo\.com\/\d/i },
-	{ platform: "twitter", pattern: /(?:twitter\.com|x\.com)\/\w+\/status\//i },
-	{ platform: "spotify", pattern: /open\.spotify\.com\//i },
-	{ platform: "tiktok", pattern: /tiktok\.com\/@[\w.]+\/video\//i },
-];
 
 export const PLATFORM_LABELS: Record<Platform, string> = {
 	youtube: "YouTube",
@@ -37,14 +31,33 @@ export const VIDEO_EMBED_PLATFORMS: Platform[] = ["youtube", "vimeo"];
 
 const SCRIPT_RE = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
 
+function hostMatches(host: string, base: string): boolean {
+	return host === base || host.endsWith("." + base);
+}
+
+// Parse the URL and match on the real hostname + path rather than substring-
+// testing the whole string, so query/fragment injection (e.g.
+// https://evil.test/#open.spotify.com/) can't misclassify a URL.
 export function detectPlatform(url: string): Platform | null {
-	for (const { platform, pattern } of PLATFORM_PATTERNS) {
-		if (pattern.test(url)) return platform;
+	let u: URL;
+	try {
+		u = new URL(url);
+	} catch {
+		return null;
 	}
+	if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+	const host = u.hostname.toLowerCase();
+	const path = u.pathname;
+
+	if (host === "youtu.be" || (hostMatches(host, "youtube.com") && /^\/(watch|shorts)/.test(path))) return "youtube";
+	if (hostMatches(host, "vimeo.com") && /^\/\d/.test(path)) return "vimeo";
+	if ((hostMatches(host, "twitter.com") || hostMatches(host, "x.com")) && path.includes("/status/")) return "twitter";
+	if (hostMatches(host, "spotify.com")) return "spotify";
+	if (hostMatches(host, "tiktok.com") && /^\/@[\w.]+\/video\//.test(path)) return "tiktok";
 	return null;
 }
 
-export async function fetchEmbed(url: string, platform: Platform): Promise<EmbedResult | null> {
+export async function fetchEmbed(ctx: RouteContext, url: string, platform: Platform): Promise<EmbedResult | null> {
 	let oembedUrl: string;
 
 	switch (platform) {
@@ -63,14 +76,25 @@ export async function fetchEmbed(url: string, platform: Platform): Promise<Embed
 		case "tiktok":
 			oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
 			break;
+		default:
+			// Exhaustiveness guard: a new Platform without a case fails safe.
+			platform satisfies never;
+			return null;
 	}
 
 	try {
-		const res = await fetch(oembedUrl, {
+		// Prefer the capability-gated ctx.http.fetch (enforces allowedHosts when
+		// the plugin runs sandboxed); fall back to global fetch for the native
+		// runtime. AbortSignal.timeout prevents a slow provider from stalling SSR.
+		const doFetch: typeof fetch = ctx.http?.fetch
+			? (ctx.http.fetch.bind(ctx.http) as typeof fetch)
+			: fetch;
+		const res = await doFetch(oembedUrl, {
 			headers: {
 				Accept: "application/json",
 				"User-Agent": "Mozilla/5.0 (compatible; oEmbed/1.0; +https://everybittexas.com)",
 			},
+			signal: AbortSignal.timeout(5000),
 			// @ts-ignore — Cloudflare Workers cf option, ignored in Node.js dev
 			cf: { cacheTtl: 86400, cacheEverything: true },
 		});
