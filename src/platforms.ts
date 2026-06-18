@@ -85,19 +85,37 @@ export async function fetchEmbed(ctx: RouteContext, url: string, platform: Platf
 	try {
 		// Prefer the capability-gated ctx.http.fetch (enforces allowedHosts when
 		// the plugin runs sandboxed); fall back to global fetch for the native
-		// runtime. AbortSignal.timeout prevents a slow provider from stalling SSR.
+		// runtime.
 		const doFetch: typeof fetch = ctx.http?.fetch
 			? (ctx.http.fetch.bind(ctx.http) as typeof fetch)
 			: fetch;
-		const res = await doFetch(oembedUrl, {
+		// Do NOT pass an AbortSignal here. When sandboxed, doFetch is the
+		// ctx.http.fetch RPC stub, whose init is structured-cloned across the
+		// isolate boundary — and Workers cannot serialize an AbortSignal
+		// ("DataCloneError: AbortSignal serialization is not enabled"), which
+		// silently broke every embed. Race against a timer instead so a slow
+		// provider still can't stall SSR.
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const request = doFetch(oembedUrl, {
 			headers: {
 				Accept: "application/json",
 				"User-Agent": "Mozilla/5.0 (compatible; oEmbed/1.0; +https://everybittexas.com)",
 			},
-			signal: AbortSignal.timeout(5000),
 			// @ts-ignore — Cloudflare Workers cf option, ignored in Node.js dev
 			cf: { cacheTtl: 86400, cacheEverything: true },
 		});
+		// Swallow late settlement if the timer wins the race below, so the
+		// pending request can't surface as an unhandled rejection.
+		void request.then(
+			() => {},
+			() => {},
+		);
+		const res = await Promise.race([
+			request,
+			new Promise<never>((_, reject) => {
+				timer = setTimeout(() => reject(new Error("oEmbed request timed out after 5000ms")), 5000);
+			}),
+		]).finally(() => clearTimeout(timer));
 		if (!res.ok) return null;
 
 		const data = (await res.json()) as {
