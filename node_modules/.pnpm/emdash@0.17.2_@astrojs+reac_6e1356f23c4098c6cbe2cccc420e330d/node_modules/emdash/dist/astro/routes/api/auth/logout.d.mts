@@ -1,8 +1,0 @@
-import { APIRoute } from "astro";
-
-//#region src/astro/routes/api/auth/logout.d.ts
-declare const prerender = false;
-declare const POST: APIRoute;
-//#endregion
-export { POST, prerender };
-//# sourceMappingURL=logout.d.mts.map

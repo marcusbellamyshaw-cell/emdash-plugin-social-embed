@@ -1,1 +1,0 @@
-{"version":3,"file":"parallel.d.ts","sourceRoot":"","sources":["../../../../src/components/flow/parallel.tsx"],"names":[],"mappings":"AAAA,OAAO,EAOL,KAAK,SAAS,EACf,MAAM,OAAO,CAAC;AA0Df,KAAK,qBAAqB,GAAG;IAC3B,QAAQ,EAAE,SAAS,CAAC;IACpB;;;;OAIG;IACH,KAAK,CAAC,EAAE,OAAO,GAAG,KAAK,CAAC;CACzB,CAAC;AAEF,wBAAgB,gBAAgB,CAAC,EAC/B,QAAQ,EACR,KAAe,GAChB,EAAE,qBAAqB,2CAwXvB"}
