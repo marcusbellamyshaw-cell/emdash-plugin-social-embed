@@ -12,9 +12,13 @@
   "peerDependencies": {
     "emdash": ">=0.17.0"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.0.0",
     "astro": "^6.0.1",
+    "emdash": "latest",
     "typescript": "^5.0.0"
   }
 }
