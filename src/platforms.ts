@@ -31,6 +31,45 @@ export const VIDEO_EMBED_PLATFORMS: Platform[] = ["youtube", "vimeo"];
 
 const SCRIPT_RE = /<script\b[^>]*>[\s\S]*?<\/script>/gi;
 
+// oEmbed HTML comes from 5 fixed, trusted provider hosts (enforced by
+// allowedHosts + detectPlatform's exact-host match), so this isn't
+// exploitable by an attacker-controlled URL today. But the raw HTML is
+// rendered via set:html with zero validation of its shape — if a provider
+// response were ever tampered with (compromised CDN, MITM before this
+// worker's own outbound TLS terminates upstream, or a future bug loosening
+// the host allowlist), stripping only <script> leaves every other injection
+// vector (onerror=, javascript:/data: URIs, <object>/<embed>/<form>) wide
+// open. Real oEmbed responses only ever use iframe/blockquote/a/img/p/div/
+// span/br, so allowlisting to that set is not a functional regression.
+const ALLOWED_EMBED_TAGS = new Set(["iframe", "blockquote", "a", "p", "div", "span", "br", "img"]);
+const EVENT_ATTR_RE = /\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi;
+const DANGEROUS_URL_RE = /^\s*(javascript|data):/i;
+
+function stripDisallowedTags(html: string): string {
+	return html.replace(/<\/?([a-z0-9]+)\b[^>]*>/gi, (match, tagName: string) =>
+		ALLOWED_EMBED_TAGS.has(tagName.toLowerCase()) ? match : "",
+	);
+}
+
+function stripDangerousAttributes(html: string): string {
+	const noEventHandlers = html.replace(EVENT_ATTR_RE, "");
+	return noEventHandlers.replace(
+		/(\ssrc|\shref)(\s*=\s*)("([^"]*)"|'([^']*)')/gi,
+		(match, attr: string, eq: string, _quoted: string, dq?: string, sq?: string) =>
+			DANGEROUS_URL_RE.test(dq ?? sq ?? "") ? "" : match,
+	);
+}
+
+// Strips <script> blocks, drops any tag outside the known oEmbed shape, and
+// removes event-handler attributes / javascript:|data: URIs from what's left.
+// A regex sanitizer can't be made airtight against all HTML obfuscation —
+// this is deliberately scoped to the narrow, well-known shape of real oEmbed
+// responses, not a general-purpose HTML sanitizer.
+export function sanitizeEmbedHtml(html: string): string {
+	const noScripts = html.replace(SCRIPT_RE, "");
+	return stripDangerousAttributes(stripDisallowedTags(noScripts)).trim();
+}
+
 function hostMatches(host: string, base: string): boolean {
 	return host === base || host.endsWith("." + base);
 }
@@ -125,9 +164,10 @@ export async function fetchEmbed(ctx: RouteContext, url: string, platform: Platf
 		};
 		if (!data.html) return null;
 
-		// Strip script tags — innerHTML-injected scripts don't execute in browsers.
-		// We inject the platform script separately as a real DOM element.
-		const html = data.html.replace(SCRIPT_RE, "").trim();
+		// Scripts don't execute via innerHTML anyway — we inject the platform
+		// script separately as a real DOM element. sanitizeEmbedHtml strips them
+		// plus anything else outside the known oEmbed tag/attribute shape.
+		const html = sanitizeEmbedHtml(data.html);
 		const scriptSrc = PLATFORM_SCRIPTS[platform];
 
 		return { html, scriptSrc, platform, title: data.title, authorName: data.author_name };

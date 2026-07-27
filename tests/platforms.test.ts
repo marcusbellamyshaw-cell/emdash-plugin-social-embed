@@ -1,6 +1,35 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { detectPlatform, fetchEmbed } from "../src/platforms.js";
+import { detectPlatform, fetchEmbed, sanitizeEmbedHtml } from "../src/platforms.js";
 import type { RouteContext } from "emdash";
+
+describe("sanitizeEmbedHtml", () => {
+	it("strips script tags", () => {
+		expect(sanitizeEmbedHtml('<blockquote>hi</blockquote><script>alert(1)</script>')).not.toContain("<script");
+	});
+
+	it("strips disallowed tags like style and object", () => {
+		const out = sanitizeEmbedHtml('<style>body{color:red}</style><object data="x"></object><iframe src="https://youtube.com/embed/x"></iframe>');
+		expect(out).not.toContain("<style");
+		expect(out).not.toContain("<object");
+		expect(out).toContain("<iframe");
+	});
+
+	it("strips event-handler attributes", () => {
+		const out = sanitizeEmbedHtml('<img src="https://example.com/x.png" onerror="fetch(\'https://evil.example\')">');
+		expect(out).not.toContain("onerror");
+	});
+
+	it("strips javascript: and data: URIs from src/href", () => {
+		const out = sanitizeEmbedHtml('<a href="javascript:alert(1)">click</a><img src="data:text/html,<script>alert(1)</script>">');
+		expect(out).not.toContain("javascript:");
+		expect(out).not.toContain("data:text/html");
+	});
+
+	it("keeps real oEmbed shapes intact", () => {
+		const html = '<iframe src="https://www.youtube.com/embed/abc" width="480" height="270" allow="autoplay"></iframe>';
+		expect(sanitizeEmbedHtml(html)).toBe(html);
+	});
+});
 
 describe("detectPlatform", () => {
 	it("matches youtube watch URLs", () => {
