@@ -5,7 +5,7 @@ import { detectPlatform, fetchEmbed } from "./platforms.js";
 export function createPlugin() {
 	return definePlugin({
 		id: "social-embed",
-		version: "1.3.1",
+		version: "1.4.0",
 
 		admin: {
 			portableTextBlocks: [
@@ -31,6 +31,10 @@ export function createPlugin() {
 		routes: {
 			oembed: {
 				public: true,
+				methods: ["GET" as const],
+				// Provider embeds are stable per URL; short TTL because failures
+				// ({ error }) are returned as 200s and would be cached too.
+				cacheControl: "public, max-age=120",
 				handler: async (ctx: RouteContext) => {
 					const urlParam = new URL(ctx.request.url).searchParams.get("url");
 

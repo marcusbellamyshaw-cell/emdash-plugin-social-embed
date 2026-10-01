@@ -5,7 +5,7 @@ export { createPlugin } from "./sandbox-entry.js";
 export function socialEmbedPlugin(options: Record<string, unknown> = {}): PluginDescriptor {
 	return {
 		id: "social-embed",
-		version: "1.3.1",
+		version: "1.4.0",
 		entrypoint: "emdash-plugin-social-embed",
 		componentsEntry: "emdash-plugin-social-embed/astro",
 		options,

@@ -10,7 +10,7 @@
   },
   "keywords": ["emdash", "emdash-plugin", "social-embed", "oembed"],
   "peerDependencies": {
-    "emdash": ">=0.17.0"
+    "emdash": ">=0.39.0"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
