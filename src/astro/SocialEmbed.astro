@@ -84,6 +84,12 @@ if (url) {
 		max-width: 550px;
 	}
 
+	/* Video fills the article column; tweets/Spotify/TikTok keep the 550px cap. */
+	.social-embed[data-platform="youtube"],
+	.social-embed[data-platform="vimeo"] {
+		max-width: 100%;
+	}
+
 	.social-embed :global(iframe) {
 		width: 100%;
 		border: none;

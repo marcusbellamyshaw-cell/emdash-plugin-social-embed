@@ -5,7 +5,7 @@ import { detectPlatform, fetchEmbed } from "./platforms.js";
 export function createPlugin() {
 	return definePlugin({
 		id: "social-embed",
-		version: "1.4.0",
+		version: "1.4.1",
 
 		admin: {
 			portableTextBlocks: [
